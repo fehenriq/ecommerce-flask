@@ -1,0 +1,25 @@
+[MASTER]
+
+max-line-length = 120
+
+ignore-patterns = **/venv/**, **/env/**, **/.venv/**, **/.env/**
+
+[MESSAGES CONTROL]
+
+disable = C0114, C0115, C0116, W0702, W1514
+
+[FORMAT]
+
+style = black
+
+[BASIC]
+
+ignored-argument-names = _, self
+
+ignored-modules = os, sys
+
+[TYPECHECK]
+
+enabled = yes
+
+max-annotations = 3
