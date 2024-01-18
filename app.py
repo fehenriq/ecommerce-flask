@@ -33,6 +33,18 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 
+@app.route("/register", methods=["POST"])
+def register():
+    data = request.json
+    if "username" in data and "password" in data:
+        user = User(username=data["username"], password=data["password"])
+        db.session.add(user)
+        db.session.commit()
+        return jsonify({"message": "Account created successfully"})
+
+    return jsonify({"message": "Invalid data"}), 400
+
+
 @app.route("/login", methods=["POST"])
 def login():
     data = request.json
@@ -120,6 +132,9 @@ def update_product(product_id):
 def get_products():
     products = Product.query.all()
     products_list = []
+
+    if not products:
+        return jsonify({"message": "No products found"}), 404
 
     for product in products:
         products_data = {
