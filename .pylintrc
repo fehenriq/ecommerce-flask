@@ -1,6 +1,6 @@
 [MASTER]
 
-max-line-length = 120
+max-line-length = 100
 
 ignore-patterns = **/venv/**, **/env/**, **/.venv/**, **/.env/**
 
