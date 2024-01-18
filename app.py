@@ -1,6 +1,13 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-from flask_login import UserMixin, login_user, LoginManager, login_required, logout_user
+from flask_login import (
+    UserMixin,
+    login_user,
+    LoginManager,
+    login_required,
+    logout_user,
+    current_user,
+)
 from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
@@ -19,6 +26,7 @@ class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), nullable=False, unique=True)
     password = db.Column(db.String(80), nullable=False)
+    cart = db.relationship("Cart", backref="user", lazy=True)
 
 
 class Product(db.Model):
@@ -26,6 +34,12 @@ class Product(db.Model):
     name = db.Column(db.String(120), nullable=False)
     price = db.Column(db.Float, nullable=False)
     description = db.Column(db.Text, nullable=True)
+
+
+class Cart(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    product_id = db.Column(db.Integer, db.ForeignKey("product.id"), nullable=False)
 
 
 @login_manager.user_loader
@@ -76,7 +90,7 @@ def add_product():
         db.session.commit()
         return jsonify({"message": "Product added successfully"})
 
-    return jsonify({"message": "Invalid procuct data"}), 400
+    return jsonify({"message": "Invalid product data"}), 400
 
 
 @app.route("/api/products/delete/<int:product_id>", methods=["DELETE"])
@@ -147,9 +161,65 @@ def get_products():
     return jsonify(products_list)
 
 
-@app.route("/")
-def hello_world():
-    return "Hello World!"
+@app.route("/api/cart/add/<int:product_id>", methods=["POST"])
+@login_required
+def add_to_cart(product_id):
+    user = User.query.get(int(current_user.id))
+    product = Product.query.get(product_id)
+
+    if user and product:
+        cart = Cart(user_id=user.id, product_id=product.id)
+        db.session.add(cart)
+        db.session.commit()
+        return jsonify({"message": "Added to the cart succesfully"})
+
+    return jsonify({"message": "Failed to add item to the cart"}), 400
+
+
+@app.route("/api/cart/remove/<int:product_id>", methods=["DELETE"])
+@login_required
+def remove_from_cart(product_id):
+    cart = Cart.query.filter_by(user_id=int(current_user.id), product_id=product_id).first()
+
+    if cart:
+        db.session.delete(cart)
+        db.session.commit()
+        return jsonify({"message": "Item removed from the cart succesfully"})
+
+    return jsonify({"message": "Failed to remove item from the cart"}), 400
+
+
+@app.route("/api/cart", methods=["GET"])
+@login_required
+def view_cart():
+    user = User.query.get(int(current_user.id))
+    cart = user.cart
+    cart_data = []
+
+    for item in cart:
+        product = Product.query.get(item.product_id)
+        cart_data.append(
+            {
+                "id": item.id,
+                "product_id": item.product_id,
+                "product_name": product.name,
+            }
+        )
+
+    return jsonify(cart_data)
+
+
+@app.route("/api/cart/checkout", methods=["POST"])
+@login_required
+def checkout():
+    user = User.query.get(int(current_user.id))
+    cart = user.cart
+
+    for item in cart:
+        db.session.delete(item)
+
+    db.session.commit()
+    return jsonify({"message": "Checkout successfull. Car has been cleared"})
 
 
 if __name__ == "__main__":
