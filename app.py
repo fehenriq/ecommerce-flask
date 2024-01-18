@@ -196,6 +196,9 @@ def view_cart():
     cart = user.cart
     cart_data = []
 
+    if not cart:
+        return jsonify({"message": "No products found in the cart"}), 404
+
     for item in cart:
         product = Product.query.get(item.product_id)
         cart_data.append(
@@ -214,6 +217,9 @@ def view_cart():
 def checkout():
     user = User.query.get(int(current_user.id))
     cart = user.cart
+
+    if not cart:
+        return jsonify({"message": "No products found in the cart"}), 404
 
     for item in cart:
         db.session.delete(item)
